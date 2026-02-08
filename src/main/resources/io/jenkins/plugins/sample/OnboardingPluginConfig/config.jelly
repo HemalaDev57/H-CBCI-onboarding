@@ -15,6 +15,10 @@
                 <f:password/>
             </f:entry>
             <f:validateButton title="Test Connection" method="testConnection" with="userName,password" />
+            <f:entry title="Payload" field="payload">
+                <f:password />
+            </f:entry>
+            <f:validateButton title="Test Payload" method="testPayload" with="userName,password,payload" />
         </f:optionalBlock>
     </f:section>
 </j:jelly>

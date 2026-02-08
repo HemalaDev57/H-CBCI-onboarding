@@ -36,6 +36,17 @@ public class OnboardingPluginConfig extends GlobalConfiguration {
 
     private Secret password;
 
+    private Secret payload;
+
+    public Secret getPayload() {
+        return payload;
+    }
+
+    @DataBoundSetter
+    public void setPayload(Secret payload) {
+        this.payload = payload;
+    }
+
     public OnboardingPluginConfig() {
         load();
     }
@@ -127,6 +138,42 @@ public class OnboardingPluginConfig extends GlobalConfiguration {
         }
     }
 
+    public FormValidation doTestPayload(
+            @QueryParameter("userName") String userName,
+            @QueryParameter("password") Secret password,
+            @QueryParameter("payload") Secret payload) {
+        try {
+            // Created this mock url using https://beeceptor.com/
+            URL url = new URL("https://onboarding.free.beeceptor.com");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setDoOutput(true); // Required for sending a body
+
+            // 1. Basic Auth Header
+            String auth = userName + ":" + password.getPlainText();
+            String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes("UTF-8"));
+            conn.setRequestProperty("Authorization", "Basic " + encodedAuth);
+
+            // 2. Set Content Type
+            conn.setRequestProperty("Content-Type", "text/plain");
+
+            // 3. Send the Payload Body
+            try (java.io.OutputStream os = conn.getOutputStream()) {
+                byte[] input = payload.getPlainText().getBytes("utf-8");
+                os.write(input, 0, input.length);
+            }
+
+            int code = conn.getResponseCode();
+            if (code == HttpURLConnection.HTTP_OK || code == HttpURLConnection.HTTP_CREATED) {
+                return FormValidation.ok("Payload sent successfully!");
+            } else {
+                return FormValidation.warning("Server rejected payload. Status: " + code);
+            }
+        } catch (Exception e) {
+            return FormValidation.error("Error: " + e.getMessage());
+        }
+    }
+
     @Override
     public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
         String submittedName = json.getString("name");
@@ -142,10 +189,12 @@ public class OnboardingPluginConfig extends GlobalConfiguration {
             this.userName = block.getString("userName");
             // Converting plain text string to Secret object
             this.password = Secret.fromString(block.getString("password"));
+            this.payload = Secret.fromString(block.getString("payload"));
         } else {
             this.connectionConfig = false;
             this.userName = null;
             this.password = null;
+            this.payload = null;
         }
         save();
         return true;
