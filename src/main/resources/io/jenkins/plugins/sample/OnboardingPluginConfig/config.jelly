@@ -14,6 +14,7 @@
             <f:entry title="Password" field="password">
                 <f:password/>
             </f:entry>
+            <f:validateButton title="Test Connection" method="testConnection" with="userName,password" />
         </f:optionalBlock>
     </f:section>
 </j:jelly>

@@ -1,6 +1,10 @@
 package io.jenkins.plugins.sample;
 
 
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Base64;
+
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -97,6 +101,30 @@ public class OnboardingPluginConfig extends GlobalConfiguration {
                                         + "spaces");
         }
         return FormValidation.ok();
+    }
+
+    public FormValidation doTestConnection(
+            @QueryParameter("userName") String userName,
+            @QueryParameter("password") Secret password) {
+        try {
+            // Created this mock url using https://beeceptor.com/
+            URL url = new URL("https://onboarding.free.beeceptor.com");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            String auth = userName + ":" + password.getPlainText();
+            String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes("UTF-8"));
+            conn.setRequestProperty("Authorization", "Basic " + encodedAuth);
+
+            int responseCode = conn.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                return FormValidation.ok("Connection established successfully");
+            } else {
+                return FormValidation.warning("Failed! Server returned status code: " + responseCode);
+            }
+        } catch (Exception e) {
+            return FormValidation.error("Client error: " + e.getMessage());
+        }
     }
 
     @Override
