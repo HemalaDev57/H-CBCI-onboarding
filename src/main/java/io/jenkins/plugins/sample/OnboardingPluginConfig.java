@@ -3,18 +3,25 @@ package io.jenkins.plugins.sample;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
+import java.util.UUID;
 
+import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.model.AbstractDescribableImpl;
 import hudson.model.Build;
+import hudson.model.Descriptor;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
@@ -29,6 +36,8 @@ public class OnboardingPluginConfig extends GlobalConfiguration {
     private String name;
 
     private String description;
+
+    private List<Category> categories = new ArrayList<>();
 
     private boolean connectionConfig;
 
@@ -45,6 +54,16 @@ public class OnboardingPluginConfig extends GlobalConfiguration {
     @DataBoundSetter
     public void setPayload(Secret payload) {
         this.payload = payload;
+    }
+
+    public List<Category> getCategories() {
+        return categories;
+    }
+
+    @DataBoundSetter
+    public void setCategories(List<Category> categories) {
+        this.categories = categories;
+        save();
     }
 
     public OnboardingPluginConfig() {
@@ -196,8 +215,43 @@ public class OnboardingPluginConfig extends GlobalConfiguration {
             this.password = null;
             this.payload = null;
         }
+
+        if (json.containsKey("categories")) {
+            List<Category> updatedCategories = new ArrayList<>();
+            Object categoriesObj = json.get("categories");
+
+            if (categoriesObj instanceof JSONArray array) {
+                for (int i = 0; i < array.size(); i++) {
+                    JSONObject item = array.getJSONObject(i);
+                    updatedCategories.add(new Category(item.getString("name"), item.optString("uuid")));
+                }
+            } else if (categoriesObj instanceof JSONObject item) {
+                updatedCategories.add(new Category(item.getString("name"), item.optString("uuid")));
+            }
+            this.categories = updatedCategories;
+        }
         save();
         return true;
+    }
+
+    public static class Category extends AbstractDescribableImpl<Category> {
+        private String name;
+        private final String uuid;
+
+        @DataBoundConstructor
+        public Category(String name, String uuid) {
+            this.name = name;
+            this.uuid = (uuid == null || uuid.isEmpty()) ? UUID.randomUUID().toString() : uuid;
+        }
+
+        public String getName() { return name; }
+        public String getUuid() { return uuid; }
+
+        @Extension
+        public static class DescriptorImpl extends Descriptor<Category> {
+            @Override
+            public String getDisplayName() { return "Category"; }
+        }
     }
 
 }

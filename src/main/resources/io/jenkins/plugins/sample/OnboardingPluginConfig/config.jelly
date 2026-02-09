@@ -21,4 +21,21 @@
             <f:validateButton title="Test Payload" method="testPayload" with="userName,password,payload" />
         </f:optionalBlock>
     </f:section>
+    <f:section title="Onboarding Categories">
+        <f:entry title="Category List">
+            <f:repeatable field="categories" add="Add Category">
+                <table width="100%">
+                    <f:entry title="Name" field="name">
+                        <f:textbox />
+                        <input type="hidden" name="uuid" value="${instance.uuid}" />
+                    </f:entry>
+                    <f:entry>
+                        <div align="right">
+                            <f:repeatableDeleteButton />
+                        </div>
+                    </f:entry>
+                </table>
+            </f:repeatable>
+        </f:entry>
+    </f:section>
 </j:jelly>
