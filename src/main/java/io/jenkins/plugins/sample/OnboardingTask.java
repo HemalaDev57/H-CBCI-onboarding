@@ -34,11 +34,15 @@ public class OnboardingTask extends Builder {
         assert config != null;
         String categoryName = config.getCategories().stream()
                 .filter(c -> c.getUuid().equals(categoryUuid))
-                .map(OnboardingPluginConfig.Category::getName)
+                .map(OnboardingPluginConfig.Category::getCategoryName)
                 .findFirst()
                 .orElse("Unknown Category");
 
         listener.getLogger().println("Selected Category: " + categoryName);
+
+        BuildHistory history = BuildHistory.load();
+        history.updateCategoryJob(this.categoryUuid, build.getParent().getFullName());
+        history.addRecord(build.getParent().getFullDisplayName(), build.getNumber(), categoryName);
 
         return true;
     }
@@ -62,7 +66,7 @@ public class OnboardingTask extends Builder {
 
             if (config != null && config.getCategories() != null) {
                 for (OnboardingPluginConfig.Category c : config.getCategories()) {
-                    items.add(c.getName(), c.getUuid());
+                    items.add(c.getCategoryName(), c.getUuid());
                 }
             }
             return items;

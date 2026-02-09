@@ -40,6 +40,10 @@ public class OnboardingPluginConfig extends GlobalConfiguration {
         return payload;
     }
 
+    public OnboardingPluginConfig() {
+        load();
+    }
+
     @DataBoundSetter
     public void setPayload(Secret payload) {
         this.payload = payload;
@@ -53,10 +57,6 @@ public class OnboardingPluginConfig extends GlobalConfiguration {
     public void setCategories(List<Category> categories) {
         this.categories = categories;
         save();
-    }
-
-    public OnboardingPluginConfig() {
-        load();
     }
 
     public String getName() {
@@ -111,76 +111,6 @@ public class OnboardingPluginConfig extends GlobalConfiguration {
         save();
     }
 
-    public FormValidation doCheckName(@QueryParameter String value) {
-        if (value.length() == 0) {
-            return FormValidation.error("Please set the name");
-        }
-        if (!value.matches("^[a-zA-Z ]+$")) {
-            return FormValidation.error(
-                    "Invalid format. The name should only contain lowercase, uppercase letters and spaces");
-        }
-        return FormValidation.ok();
-    }
-
-    public FormValidation doTestConnection(
-            @QueryParameter("userName") String userName, @QueryParameter("password") Secret password) {
-        try {
-            // Created this mock url using https://beeceptor.com/
-            URL url = new URL("https://onboarding.free.beeceptor.com");
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-
-            String auth = userName + ":" + password.getPlainText();
-            String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes("UTF-8"));
-            conn.setRequestProperty("Authorization", "Basic " + encodedAuth);
-
-            int responseCode = conn.getResponseCode();
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                return FormValidation.ok("Connection established successfully");
-            } else {
-                return FormValidation.warning("Failed! Server returned status code: " + responseCode);
-            }
-        } catch (Exception e) {
-            return FormValidation.error("Client error: " + e.getMessage());
-        }
-    }
-
-    public FormValidation doTestPayload(
-            @QueryParameter("userName") String userName,
-            @QueryParameter("password") Secret password,
-            @QueryParameter("payload") Secret payload) {
-        try {
-            // Created this mock url using https://beeceptor.com/
-            URL url = new URL("https://onboarding.free.beeceptor.com");
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setDoOutput(true); // Required for sending a body
-
-            // 1. Basic Auth Header
-            String auth = userName + ":" + password.getPlainText();
-            String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes("UTF-8"));
-            conn.setRequestProperty("Authorization", "Basic " + encodedAuth);
-
-            // 2. Set Content Type
-            conn.setRequestProperty("Content-Type", "text/plain");
-
-            // 3. Send the Payload Body
-            try (java.io.OutputStream os = conn.getOutputStream()) {
-                byte[] input = payload.getPlainText().getBytes("utf-8");
-                os.write(input, 0, input.length);
-            }
-
-            int code = conn.getResponseCode();
-            if (code == HttpURLConnection.HTTP_OK || code == HttpURLConnection.HTTP_CREATED) {
-                return FormValidation.ok("Payload sent successfully!");
-            } else {
-                return FormValidation.warning("Server rejected payload. Status: " + code);
-            }
-        } catch (Exception e) {
-            return FormValidation.error("Error: " + e.getMessage());
-        }
-    }
-
     @Override
     public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
         String submittedName = json.getString("name");
@@ -211,10 +141,10 @@ public class OnboardingPluginConfig extends GlobalConfiguration {
             if (categoriesObj instanceof JSONArray array) {
                 for (int i = 0; i < array.size(); i++) {
                     JSONObject item = array.getJSONObject(i);
-                    updatedCategories.add(new Category(item.getString("name"), item.optString("uuid")));
+                    updatedCategories.add(new Category(item.getString("categoryName"), item.optString("uuid")));
                 }
             } else if (categoriesObj instanceof JSONObject item) {
-                updatedCategories.add(new Category(item.getString("name"), item.optString("uuid")));
+                updatedCategories.add(new Category(item.getString("categoryName"), item.optString("uuid")));
             }
             this.categories = updatedCategories;
         }
@@ -222,18 +152,104 @@ public class OnboardingPluginConfig extends GlobalConfiguration {
         return true;
     }
 
+    public List<BuildHistory.BuildRecord> getRecentBuilds() {
+        return BuildHistory.load().getRecords();
+    }
+
+    @Extension
+    public static final class DescriptorImpl extends Descriptor<GlobalConfiguration> {
+        @Override
+        public String getDisplayName() {
+            return "Onboarding Plugin Configuration";
+        }
+
+        public List<BuildHistory.BuildRecord> getRecentBuilds() {
+            return BuildHistory.load().getRecords();
+        }
+
+        public FormValidation doCheckName(@QueryParameter String value) {
+            if (value.length() == 0) {
+                return FormValidation.error("Please set the name");
+            }
+            if (!value.matches("^[a-zA-Z ]+$")) {
+                return FormValidation.error(
+                        "Invalid format. The name should only contain lowercase, uppercase letters and spaces");
+            }
+            return FormValidation.ok();
+        }
+
+        public FormValidation doTestConnection(
+                @QueryParameter("userName") String userName, @QueryParameter("password") Secret password) {
+            try {
+                // Created this mock url using https://beeceptor.com/
+                URL url = new URL("https://onboarding.free.beeceptor.com");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+
+                String auth = userName + ":" + password.getPlainText();
+                String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes("UTF-8"));
+                conn.setRequestProperty("Authorization", "Basic " + encodedAuth);
+
+                int responseCode = conn.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    return FormValidation.ok("Connection established successfully");
+                } else {
+                    return FormValidation.warning("Failed! Server returned status code: " + responseCode);
+                }
+            } catch (Exception e) {
+                return FormValidation.error("Client error: " + e.getMessage());
+            }
+        }
+
+        public FormValidation doTestPayload(
+                @QueryParameter("userName") String userName,
+                @QueryParameter("password") Secret password,
+                @QueryParameter("payload") Secret payload) {
+            try {
+                // Created this mock url using https://beeceptor.com/
+                URL url = new URL("https://onboarding.free.beeceptor.com");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true); // Required for sending a body
+
+                // 1. Basic Auth Header
+                String auth = userName + ":" + password.getPlainText();
+                String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes("UTF-8"));
+                conn.setRequestProperty("Authorization", "Basic " + encodedAuth);
+
+                // 2. Set Content Type
+                conn.setRequestProperty("Content-Type", "text/plain");
+
+                // 3. Send the Payload Body
+                try (java.io.OutputStream os = conn.getOutputStream()) {
+                    byte[] input = payload.getPlainText().getBytes("utf-8");
+                    os.write(input, 0, input.length);
+                }
+
+                int code = conn.getResponseCode();
+                if (code == HttpURLConnection.HTTP_OK || code == HttpURLConnection.HTTP_CREATED) {
+                    return FormValidation.ok("Payload sent successfully!");
+                } else {
+                    return FormValidation.warning("Server rejected payload. Status: " + code);
+                }
+            } catch (Exception e) {
+                return FormValidation.error("Error: " + e.getMessage());
+            }
+        }
+    }
+
     public static class Category extends AbstractDescribableImpl<Category> {
-        private String name;
+        private String categoryName;
         private final String uuid;
 
         @DataBoundConstructor
-        public Category(String name, String uuid) {
-            this.name = name;
+        public Category(String categoryName, String uuid) {
+            this.categoryName = categoryName;
             this.uuid = (uuid == null || uuid.isEmpty()) ? UUID.randomUUID().toString() : uuid;
         }
 
-        public String getName() {
-            return name;
+        public String getCategoryName() {
+            return categoryName;
         }
 
         public String getUuid() {
@@ -246,6 +262,12 @@ public class OnboardingPluginConfig extends GlobalConfiguration {
             public String getDisplayName() {
                 return "Category";
             }
+
+            public String getLastJob(String uuid) {
+                if (uuid == null) return "N/A";
+                return BuildHistory.load().getLatestJobForCategory(uuid);
+            }
+
         }
     }
 }
