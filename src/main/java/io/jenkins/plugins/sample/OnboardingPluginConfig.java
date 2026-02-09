@@ -1,34 +1,23 @@
 package io.jenkins.plugins.sample;
 
-
+import hudson.Extension;
+import hudson.model.AbstractDescribableImpl;
+import hudson.model.Descriptor;
+import hudson.util.FormValidation;
+import hudson.util.Secret;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
-
+import jenkins.model.GlobalConfiguration;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
-
-import net.sf.json.JSONArray;
-import net.sf.json.JSONObject;
-
-import hudson.Extension;
-import hudson.FilePath;
-import hudson.Launcher;
-import hudson.model.AbstractDescribableImpl;
-import hudson.model.Build;
-import hudson.model.Descriptor;
-import hudson.model.Run;
-import hudson.model.TaskListener;
-import hudson.tasks.BuildStepDescriptor;
-import hudson.tasks.Builder;
-import hudson.util.FormValidation;
-import hudson.util.Secret;
-import jenkins.model.GlobalConfiguration;
 
 @Extension
 public class OnboardingPluginConfig extends GlobalConfiguration {
@@ -127,15 +116,14 @@ public class OnboardingPluginConfig extends GlobalConfiguration {
             return FormValidation.error("Please set the name");
         }
         if (!value.matches("^[a-zA-Z ]+$")) {
-            return FormValidation.error("Invalid format. The name should only contain lowercase, uppercase letters and "
-                                        + "spaces");
+            return FormValidation.error(
+                    "Invalid format. The name should only contain lowercase, uppercase letters and spaces");
         }
         return FormValidation.ok();
     }
 
     public FormValidation doTestConnection(
-            @QueryParameter("userName") String userName,
-            @QueryParameter("password") Secret password) {
+            @QueryParameter("userName") String userName, @QueryParameter("password") Secret password) {
         try {
             // Created this mock url using https://beeceptor.com/
             URL url = new URL("https://onboarding.free.beeceptor.com");
@@ -244,14 +232,20 @@ public class OnboardingPluginConfig extends GlobalConfiguration {
             this.uuid = (uuid == null || uuid.isEmpty()) ? UUID.randomUUID().toString() : uuid;
         }
 
-        public String getName() { return name; }
-        public String getUuid() { return uuid; }
+        public String getName() {
+            return name;
+        }
+
+        public String getUuid() {
+            return uuid;
+        }
 
         @Extension
         public static class DescriptorImpl extends Descriptor<Category> {
             @Override
-            public String getDisplayName() { return "Category"; }
+            public String getDisplayName() {
+                return "Category";
+            }
         }
     }
-
 }

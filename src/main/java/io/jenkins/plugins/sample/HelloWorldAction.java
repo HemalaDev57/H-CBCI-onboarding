@@ -1,11 +1,6 @@
 package io.jenkins.plugins.sample;
 
-import java.io.IOException;
-
-import hudson.FilePath;
-import hudson.Launcher;
 import hudson.model.Run;
-import hudson.model.TaskListener;
 import jenkins.model.RunAction2;
 
 public class HelloWorldAction implements RunAction2 {

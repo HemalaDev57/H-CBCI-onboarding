@@ -1,6 +1,5 @@
 package io.jenkins.plugins.sample;
 
-import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -42,7 +41,8 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
     }
 
     @Override
-    public void perform(Run<?, ?> run, FilePath workspace, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
+    public void perform(Run<?, ?> run, FilePath workspace, Launcher launcher, TaskListener listener)
+            throws InterruptedException, IOException {
         run.addAction(new HelloWorldAction(name));
         if (useFrench) {
             listener.getLogger().println("Bonjour, " + name + "!");
